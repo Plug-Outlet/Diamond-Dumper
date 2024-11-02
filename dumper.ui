@@ -324,7 +324,7 @@ QCheckBox::indicator:checked:hover {
    <widget class="QTabWidget" name="tabs">
     <property name="geometry">
      <rect>
-      <x>0</x>
+      <x>10</x>
       <y>0</y>
       <width>1300</width>
       <height>681</height>
@@ -432,6 +432,12 @@ QCheckBox::indicator:checked:hover {
        <string notr="true">border-color: #1de9b6;
 color: rgb(222, 0, 0);</string>
       </property>
+      <property name="verticalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOn</enum>
+      </property>
+      <property name="horizontalScrollBarPolicy">
+       <enum>Qt::ScrollBarAlwaysOff</enum>
+      </property>
       <property name="selectionBehavior">
        <enum>QAbstractItemView::SelectRows</enum>
       </property>
@@ -448,7 +454,7 @@ color: rgb(222, 0, 0);</string>
        <number>10</number>
       </property>
       <property name="columnCount">
-       <number>7</number>
+       <number>8</number>
       </property>
       <attribute name="horizontalHeaderVisible">
        <bool>true</bool>
@@ -542,13 +548,18 @@ color: rgb(222, 0, 0);</string>
         <string>Status</string>
        </property>
       </column>
+      <column>
+       <property name="text">
+        <string>Live Listening</string>
+       </property>
+      </column>
      </widget>
      <widget class="QPushButton" name="load_database_button">
       <property name="geometry">
        <rect>
-        <x>690</x>
+        <x>640</x>
         <y>10</y>
-        <width>121</width>
+        <width>161</width>
         <height>31</height>
        </rect>
       </property>
@@ -569,9 +580,9 @@ color: rgb(222, 0, 0);</string>
      <widget class="QPushButton" name="import_bulk_button">
       <property name="geometry">
        <rect>
-        <x>610</x>
+        <x>540</x>
         <y>10</y>
-        <width>71</width>
+        <width>80</width>
         <height>31</height>
        </rect>
       </property>
@@ -782,7 +793,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
        <rect>
         <x>360</x>
         <y>10</y>
-        <width>211</width>
+        <width>161</width>
         <height>31</height>
        </rect>
       </property>
@@ -805,9 +816,9 @@ li.checked::marker { content: &quot;\2612&quot;; }
      <widget class="QTextEdit" name="console_text_response_input">
       <property name="geometry">
        <rect>
-        <x>240</x>
+        <x>230</x>
         <y>610</y>
-        <width>611</width>
+        <width>621</width>
         <height>31</height>
        </rect>
       </property>
@@ -1072,6 +1083,9 @@ between Telegram and your bot's server.</string>
           <height>41</height>
          </rect>
         </property>
+        <property name="statusTip">
+         <string>Dumping Tab - Msgs Button - This will dump all messages that has been sent TO and FROM that bot and their users - - The results will be located in your &quot;File Directory Path to Dump......&quot; Location</string>
+        </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
   border-radius: 4px;
@@ -1092,6 +1106,9 @@ between Telegram and your bot's server.</string>
         </property>
         <property name="toolTip">
          <string>Users whose identifiers were shared with the bot such as User ID and Username</string>
+        </property>
+        <property name="statusTip">
+         <string>Dumping Tab - Users - This will dump a text file of all users and their JSON webhook responses.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1129,6 +1146,9 @@ between Telegram and your bot's server.</string>
           <height>41</height>
          </rect>
         </property>
+        <property name="statusTip">
+         <string>Dumping Tab - History - This will dump a JSON file that has ALL users saved chat history with that bot.</string>
+        </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
   border-radius: 4px;
@@ -1146,6 +1166,9 @@ between Telegram and your bot's server.</string>
           <width>80</width>
           <height>41</height>
          </rect>
+        </property>
+        <property name="statusTip">
+         <string>Dumping Tab - Text Button - This will save all Text FILES that has been sent to or from that bot.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1204,6 +1227,9 @@ between Telegram and your bot's server.</string>
           <height>41</height>
          </rect>
         </property>
+        <property name="statusTip">
+         <string>Dumping Tab - Media - This button will save any and all MUTLIMEDIA data that has been interacted with the bot. This includes Photos, Videos, and Voice Notes. As well as each Users Profile photos</string>
+        </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
   border-radius: 4px;
@@ -1221,6 +1247,9 @@ between Telegram and your bot's server.</string>
           <width>80</width>
           <height>41</height>
          </rect>
+        </property>
+        <property name="statusTip">
+         <string>Dumping Tab - Media 📸 - This will ONLY save the pictures and photos that the bot has delivered or recived.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1270,6 +1299,31 @@ the content to a custom directory path of your choice</string>
          </property>
         </item>
        </widget>
+       <widget class="QPushButton" name="live_listening_button">
+        <property name="geometry">
+         <rect>
+          <x>60</x>
+          <y>200</y>
+          <width>231</width>
+          <height>41</height>
+         </rect>
+        </property>
+        <property name="toolTip">
+         <string>Live Listening Button - This button will give you the information about IF the live
+listening status is active or not, and IF it is - by whom.</string>
+        </property>
+        <property name="statusTip">
+         <string>Live Listening Button - This button will give you the information about IF the live listening status is active or not, and IF it is - by whom.</string>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">  border: 2px solid #1de9b6;
+  border-radius: 4px;
+  height: 32px;</string>
+        </property>
+        <property name="text">
+         <string>Live Listening Status</string>
+        </property>
+       </widget>
       </widget>
       <widget class="QWidget" name="sending_tab">
        <attribute name="title">
@@ -1283,6 +1337,9 @@ the content to a custom directory path of your choice</string>
           <width>81</width>
           <height>51</height>
          </rect>
+        </property>
+        <property name="statusTip">
+         <string>Sending Tab - Paid Content - This will allow you to send a message with a File/Photo attached to it and charge &quot;Telegram Stars&quot; (XTR) to unlock that content.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1301,6 +1358,9 @@ the content to a custom directory path of your choice</string>
           <width>81</width>
           <height>41</height>
          </rect>
+        </property>
+        <property name="statusTip">
+         <string>Sending Tab - Contact - This will send a Contact Infromation card to all users with the users ID, Phone Number, Etc.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1358,6 +1418,9 @@ the content to a custom directory path of your choice</string>
           <width>61</width>
           <height>41</height>
          </rect>
+        </property>
+        <property name="statusTip">
+         <string>Sending Tab - Text - Using the console_text_response_input, you can enter a message to send AS THAT BOT to the bots subscribers and active users.</string>
         </property>
         <property name="styleSheet">
          <string notr="true">  border: 2px solid #1de9b6;
@@ -1482,25 +1545,6 @@ the content to a custom directory path of your choice</string>
         </property>
        </widget>
       </widget>
-     </widget>
-     <widget class="QPushButton" name="text_file_directory_button">
-      <property name="geometry">
-       <rect>
-        <x>570</x>
-        <y>10</y>
-        <width>31</width>
-        <height>31</height>
-       </rect>
-      </property>
-      <property name="font">
-       <font>
-        <pointsize>18</pointsize>
-        <bold>false</bold>
-       </font>
-      </property>
-      <property name="text">
-       <string>📂</string>
-      </property>
      </widget>
     </widget>
     <widget class="QWidget" name="tdata_manager_tab">
@@ -2363,13 +2407,13 @@ li.checked::marker { content: &quot;\2612&quot;; }
 &lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:37px; margin-right:37px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;User-Friendly Interface: A simple and intuitive GUI for effortless navigation and use. &lt;/li&gt;
 &lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:37px; margin-right:37px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Multiple Reporting Categories: Report users for various violations, including: 
 &lt;ul style=&quot;margin-top: 0px; margin-bottom: 0px; margin-left: 0px; margin-right: 0px; -qt-list-indent: 2;&quot;&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Sharing Illegal Content &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Scams and Fraud &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Harassment and Threats &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Child Abuse &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Promoting Violence &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Impersonation &lt;/li&gt;
-&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:148px; margin-right:148px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Pedophile &lt;/li&gt;&lt;/ul&gt;&lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Sharing Illegal Content &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Scams and Fraud &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Harassment and Threats &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Child Abuse &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Promoting Violence &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Impersonation &lt;/li&gt;
+&lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:185px; margin-right:185px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Pedophile &lt;/li&gt;&lt;/ul&gt;&lt;/li&gt;
 &lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:37px; margin-right:37px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Custom Comments: Add detailed comments to each report for more context. &lt;/li&gt;
 &lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:0px; margin-left:37px; margin-right:37px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Secure Authentication: Supports two-factor authentication for enhanced security. &lt;/li&gt;
 &lt;li style=&quot; font-family:'Arial','sans-serif'; color:#1de9b6;&quot; style=&quot; margin-top:0px; margin-bottom:12px; margin-left:37px; margin-right:37px; -qt-block-indent:0; text-indent:0px; line-height:160%;&quot;&gt;Real-time Feedback: Get immediate console feedback on the status of your reports. &lt;/li&gt;&lt;/ul&gt;
@@ -2457,15 +2501,55 @@ li.checked::marker { content: &quot;\2612&quot;; }
      <string>Diamond Dumper - Telegram Bot Token Manager</string>
     </property>
     <addaction name="separator"/>
+   </widget>
+   <widget class="QMenu" name="menuSettings">
+    <property name="title">
+     <string>Settings</string>
+    </property>
+    <addaction name="actionRegex_Cheat_Sheet"/>
     <addaction name="actionHints_Tricks"/>
+    <addaction name="actionDataParsing"/>
+   </widget>
+   <widget class="QMenu" name="menuAbout">
+    <property name="geometry">
+     <rect>
+      <x>317</x>
+      <y>174</y>
+      <width>162</width>
+      <height>196</height>
+     </rect>
+    </property>
+    <property name="accessibleName">
+     <string/>
+    </property>
+    <property name="tearOffEnabled">
+     <bool>false</bool>
+    </property>
+    <property name="title">
+     <string>About</string>
+    </property>
+    <property name="icon">
+     <iconset>
+      <normaloff>icons/malware-64.png</normaloff>icons/malware-64.png</iconset>
+    </property>
+    <property name="separatorsCollapsible">
+     <bool>false</bool>
+    </property>
+    <property name="toolTipsVisible">
+     <bool>false</bool>
+    </property>
+    <addaction name="actionMembership"/>
+    <addaction name="actionMentorship"/>
+    <addaction name="separator"/>
+    <addaction name="actionTelegram_Group"/>
+    <addaction name="separator"/>
     <addaction name="actionMarkdown"/>
     <addaction name="actionMarkdownV2_Format"/>
     <addaction name="actionHTML_Style"/>
-    <addaction name="actionMembership"/>
-    <addaction name="actionMentorship"/>
-    <addaction name="actionTelegram_Group"/>
    </widget>
    <addaction name="menuDiamond_Sorter"/>
+   <addaction name="menuSettings"/>
+   <addaction name="menuAbout"/>
   </widget>
   <action name="actionaboutButton">
    <property name="text">
