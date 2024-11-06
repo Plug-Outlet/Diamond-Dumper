@@ -22,7 +22,10 @@
 
 ## 🌟 Overview
 
+![Alt](https://repobeats.axiom.co/api/embed/9718511b090ae5b995b24acefc861e9a1585518b.svg "Repobeats analytics image")
+
 Diamond Dumper is a sophisticated Telegram token management utility, offering a comprehensive suite of tools for power users and administrators. It combines token management, session handling, and advanced reporting features in one powerful package.
+
 
 ![image](https://github.com/user-attachments/assets/e4f79a64-ee19-4151-86f7-913c77be13b5)
 
